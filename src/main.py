@@ -302,6 +302,4 @@ if __name__ == '__main__':
   pq.parse_opml(pq.opml)
 
   # Download the metadata, images, and any missing episodes
-  #pq.get_feeds(pq.feeds)
-
-  pq.get_feeds(['https://atp.fm/episodes?format=rss'])
+  pq.get_feeds(pq.feeds)

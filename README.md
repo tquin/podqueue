@@ -35,7 +35,7 @@ This will depend on your podcast app, but most will be able to export your list 
 
 If you use a different app that has a similar functionality, please let me know and I'll add it to this list.
 
-| |Podcast App|OPML Export Options|
+|Podcast App|Podcast App|OPML Export Options|
 |---|---|---|
 |<img src="https://www.pocketcasts.com/assets/images/roundel.svg" width=50 height=50>|Pocket Casts|[OPML export](https://support.pocketcasts.com/article/exporting-an-opml/)|
 |<img src="https://upload.wikimedia.org/wikipedia/en/thumb/d/d9/Overcast_%28podcast_app%29_logo.svg/1280px-Overcast_%28podcast_app%29_logo.svg.png" width=50 height=50>|Overcast|Option available in the app's Settings page, or [here on the web.](https://overcast.fm/account/export_opml)|

@@ -11,6 +11,7 @@ import json
 import requests
 import time
 from configparser import ConfigParser
+import re
 
 # ----- ----- ----- ----- -----
 
@@ -22,7 +23,7 @@ class podqueue():
     self.verbose = False
     self.opml = None
     self.dest = os.path.join(os.getcwd(), 'output')
-    self.time_format = '%Y-%m-%dT%H-%M-%S'
+    self.time_format = '%Y-%m-%d'
     self.feeds = []
     self.FEED_FIELDS = ['title', 'link', 'description', 'published', 'image', 'categories',]
     self.EPISODE_FIELDS = ['title', 'link', 'description', 'published_parsed', 'links',]
@@ -54,6 +55,16 @@ class podqueue():
       for message in args:
         prefix = mapping.get(flag) if flag else mapping.get('default')
         print(f'{prefix} {message}')
+
+
+  def ascii_normalise(self, input_str):
+    try:
+      input_str = re.sub(r'[^a-zA-Z0-9\-\_\/\\\.]', '_', input_str)
+    except Exception as e:
+      self.verbose_print(f'\t\tError normalising file name: {e}', flag='error')
+      exit()
+
+    return input_str
 
 
   def check_config(self):
@@ -89,7 +100,7 @@ class podqueue():
     parser.add_argument('-d', '--dest', dest='dest', type=self.args_path,
       help='The destination folder for downloads. Will be created if required, including sub-directories for each separate podcast.')
     parser.add_argument('-t', '--time_format', dest='time_format',
-      help='Specify a time format string for JSON files. Defaults to 2022-06-31T21:30:59 if not specified.')
+      help='Specify a time format string for JSON files. Defaults to 2022-06-31 if not specified.')
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
       help='Prints additional debug information. If excluded, only errors are printed (for automation).')
     
@@ -141,8 +152,13 @@ class podqueue():
 
       self.verbose_print(f'\tProcessing feed: {content.feed.title}')
 
-      # Create the directory we need (no spaces) if it doesn't exist
+      # Normalise the podcast name with no spaces or non-simple ascii
       feed_dir_name = '_'.join([x for x in content.feed.title.split(' ')])
+      ffeed_dir_name = self.ascii_normalise(feed_dir_name)
+
+
+
+      # Create the directory we need (no spaces) if it doesn't exist
       directory = os.path.join(self.dest, feed_dir_name)
       if not os.path.isdir(directory):
         os.makedirs(directory)
@@ -185,6 +201,7 @@ class podqueue():
     feed_metadata['episode_count'] = len(content.entries)
 
     metadata_filename = os.path.join(directory, f'{os.path.split(directory)[1]}.json')
+    metadata_filename = self.ascii_normalise(metadata_filename)
     with open(metadata_filename, 'w') as meta_f:
       meta_f.write(json.dumps(feed_metadata))
 
@@ -204,6 +221,7 @@ class podqueue():
 
     image_filename_ext = os.path.splitext(image_url)[1]
     image_filename = os.path.join(directory, f'{os.path.split(directory)[1]}{image_filename_ext}')
+    image_filename = self.ascii_normalise(image_filename)
 
     with open(image_filename, 'wb') as img_f:
       for chunk in img.iter_content(chunk_size=128):
@@ -240,6 +258,9 @@ class podqueue():
                         f'{episode_metadata["published_parsed"]}_{episode_title}.json')
     episode_audio_filename = os.path.join(os.path.join(directory, 'episodes'), \
                         f'{episode_metadata["published_parsed"]}_{episode_title}.mp3')
+
+    episode_meta_filename = self.ascii_normalise(episode_meta_filename)
+    episode_audio_filename = self.ascii_normalise(episode_audio_filename)
 
     # Check if the file already exists on disk (if so, skip)
     if os.path.exists(episode_meta_filename) and os.path.exists(episode_audio_filename):
@@ -281,4 +302,6 @@ if __name__ == '__main__':
   pq.parse_opml(pq.opml)
 
   # Download the metadata, images, and any missing episodes
-  pq.get_feeds(pq.feeds)
+  #pq.get_feeds(pq.feeds)
+
+  pq.get_feeds(['https://atp.fm/episodes?format=rss'])

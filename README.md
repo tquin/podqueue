@@ -60,10 +60,11 @@ Your file should look something like this, with one line per podcast:
       <outline type="rss" text="Accidental Tech Podcast" xmlUrl="https://atp.fm/episodes?format=rss" />
       <outline type="rss" text="The Unmade Podcast" xmlUrl="https://www.unmade.fm/episodes?format=rss" />
       <outline type="rss" text="You Look Nice Today" xmlUrl="https://feeds.fireside.fm/youlooknicetoday/rss" />
-      <outline type="rss" text="The Pen Addict" xmlUrl="https://www.relay.fm/penaddict/feed" /></outline>
+      <outline type="rss" text="The Pen Addict" xmlUrl="https://www.relay.fm/penaddict/feed" />
 
       ... etc ...
 
+    </outline>
   </body>
 </opml>
 ```

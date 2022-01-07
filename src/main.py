@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/bin/env python3
 
 import feedparser
 import argparse
@@ -154,9 +154,7 @@ class podqueue():
 
       # Normalise the podcast name with no spaces or non-simple ascii
       feed_dir_name = '_'.join([x for x in content.feed.title.split(' ')])
-      ffeed_dir_name = self.ascii_normalise(feed_dir_name)
-
-
+      feed_dir_name = self.ascii_normalise(feed_dir_name)
 
       # Create the directory we need (no spaces) if it doesn't exist
       directory = os.path.join(self.dest, feed_dir_name)
@@ -294,7 +292,7 @@ class podqueue():
 
 # ----- ----- ----- ----- -----
 
-if __name__ == '__main__':
+def entry():
   # Initialise the config - from file, or CLI args
   pq = podqueue()
   
@@ -303,3 +301,7 @@ if __name__ == '__main__':
 
   # Download the metadata, images, and any missing episodes
   pq.get_feeds(pq.feeds)
+
+
+if __name__ == '__main__':
+  entry()

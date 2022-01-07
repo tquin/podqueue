@@ -1,7 +1,8 @@
 # podqueue
+
 Automate the archiving of podcast feeds, including show notes and images.
 
-This Python project aims for a simple user interface - you just need to modify `src/config.ini` with your inputs and outputs, and then schedule the program to run periodically.
+This Python project aims for a simple user interface - you just need to modify `config.ini` with your inputs and outputs, and then schedule the program to run periodically.
 
 # What does my config file look like?
 
@@ -69,13 +70,25 @@ Your file should look something like this, with one line per podcast:
 </opml>
 ```
 
-# How to run
+# How to install
 
-Execute the below to download each podcast into their own subdirectory, with episode metadata (shownotes, date, title, link) and show metadata (episode count, description, image) in each subdirectory. Episodes will be downloaded in default feed order - usually newest first, but it could depend on the podcast.
+Installation is done through Python's pip:
 
 ```
-$ py src/main.py -v --opml <<FILE.xml>> --dest output/
+python3 -m pip install --upgrade podqueue
+python3 -m podqueue --help
 ```
+
+Or you can just clone this repo directly:
+```
+git clone https://github.com/tquin/podqueue
+cd podqueue/
+python3 src/main.py --help
+```
+
+# Output
+
+Executing the script will download each podcast into their own subdirectory, with episode metadata (shownotes, date, title, link) and show metadata (episode count, description, image) in each subdirectory. Episodes will be downloaded in default feed order - usually newest first, but it could depend on the podcast.
 
 Example output:
 ```

@@ -4,6 +4,9 @@ Automate the archiving of podcast feeds, including show notes and images.
 
 This Python project aims for a simple user interface - you just need to modify `config.ini` with your inputs and outputs, and then schedule the program to run periodically.
 
+* https://pypi.org/project/podqueue
+* https://github.com/tquin/podqueue
+
 # What does my config file look like?
 
 The default `config.ini` looks like the below. You have two choices to run this app:
@@ -97,19 +100,19 @@ Example output:
 output/
 ├─ Accidental_Tech_Podcast/
 ├── episodes/
-│  ├── 2021-12-30_463__No_Indication_of_Progress.json
-│  ├── 2021-12-30_463__No_Indication_of_Progress.mp3
-│  ├── 2022-01-06_464__Monks_at_Drafting_Tables.json
-│  ├── 2022-01-06_464__Monks_at_Drafting_Tables.mp3
+│  ├── 2021-12-30_463_No_Indication_of_Progress.json
+│  ├── 2021-12-30_463_No_Indication_of_Progress.mp3
+│  ├── 2022-01-06_464_Monks_at_Drafting_Tables.json
+│  ├── 2022-01-06_464_Monks_at_Drafting_Tables.mp3
 │  ├── ...
 ├── Accidental_Tech_Podcast.png
 ├── Accidental_Tech_Podcast.json
 ├─ The_Pen_Addict/
 ├── episodes/
-│  ├── 2021-12-29_494__The_Centre_is_Twisty.json
-│  ├── 2021-12-29_494__The_Centre_is_Twisty.mp3
-│  ├── 2022-01-05_495__Parter_Jocker.json
-│  ├── 2022-01-05_495__Parter_Jocker.mp3
+│  ├── 2021-12-29_494_The_Centre_is_Twisty.json
+│  ├── 2021-12-29_494_The_Centre_is_Twisty.mp3
+│  ├── 2022-01-05_495_Parter_Jocker.json
+│  ├── 2022-01-05_495_Parter_Jocker.mp3
 │  ├── ...
 ├── The_Pen_Addict.png
 ├── The_Pen_Addict.json
@@ -118,7 +121,6 @@ output/
 
 # Todos
 
-* Logging to disk
 * Distro packaging
 * Better config file location, eg $HOME/.config/podqueue.cfg
 * Built-in systemd/cron timers

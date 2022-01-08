@@ -63,7 +63,14 @@ class podqueue():
 
   def ascii_normalise(self, input_str):
     try:
+      # Replace non-simple chars with dunders
       input_str = re.sub(r'[^a-zA-Z0-9\-\_\/\\\.]', '_', input_str)
+      # Replace any strings of 2+ puncts with a single underscore
+      input_str = re.sub(r'_+', r'_', input_str)
+      input_str = re.sub(r'([^a-zA-Z0-9]{2,})', r'_', input_str)
+      # Remove any trailing puncts
+      input_str = re.sub(r'(_|\.)$', r'', input_str)
+      
     except Exception as e:
       logging.exception(f'\t\tError normalising file name: {e}')
       exit()

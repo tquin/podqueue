@@ -115,7 +115,6 @@ output/
 ├── The_Pen_Addict.json
 
 ```
-<<<<<<< HEAD
 
 # Todos
 
@@ -124,5 +123,3 @@ output/
 * Better config file location, eg $HOME/.config/podqueue.cfg
 * Built-in systemd/cron timers
 * Option to only download after X date (--no-backlog or --earliest ?)
-=======
->>>>>>> 7c2aa0a92acae71491e57c200f4b4d1ce95ab4a1

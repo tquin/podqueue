@@ -61,7 +61,7 @@ class podqueue():
     logging.info('\n----- ----- ----- ----- -----\nInitialising\n----- ----- ----- ----- -----')
 
 
-  def ascii_normalise(self, input_str):
+  def ascii_normalise(self, input_str, ):
     try:
       # Replace non-simple chars with dunders
       input_str = re.sub(r'[^a-zA-Z0-9\-\_\/\\\.]', '_', input_str)
@@ -259,12 +259,15 @@ class podqueue():
       # Remove the old complicated links{}
       episode_metadata.pop('links', None)
 
-    # Figure out a unique episode filename(s)
-    episode_title = '_'.join([x for x in episode_metadata['title'].split(' ')])
+    # Get a unique episode filename(s)
+    episode_title = f'{episode_metadata["published_parsed"]}_{episode_metadata["episode_title"]}'
+    # Special case - the final file name (not path) can't have a slash in it
+    episode_title = re.sub(r'(\/|\\)', r'_', episode_title)
+    
     episode_meta_filename = os.path.join(os.path.join(directory, 'episodes'), \
-                        f'{episode_metadata["published_parsed"]}_{episode_title}.json')
+                        f'{episode_title}.json')
     episode_audio_filename = os.path.join(os.path.join(directory, 'episodes'), \
-                        f'{episode_metadata["published_parsed"]}_{episode_title}.mp3')
+                        f'{episode_title}.mp3')
 
     episode_meta_filename = self.ascii_normalise(episode_meta_filename)
     episode_audio_filename = self.ascii_normalise(episode_audio_filename)

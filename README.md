@@ -15,8 +15,9 @@ The default `config.ini` looks like the below. You have two choices to run this 
 [podqueue]
 opml = example.opml
 dest = podqueue-output/
+log_file = podqueue.log
 # Please note, '%' in time_format must be escaped with '%%'
-time_format = %%Y-%%m-%%dT%%H-%%M-%%S
+time_format = %%Y-%%m-%%d
 verbose = False
 ```
 
@@ -27,7 +28,8 @@ As mentioned, if any of these CLI arguments are specified, they will **overwrite
 * `-o`, `--opml` - Pass an OPML file that contains a podcast subscription list.
 * `-d`, `--dest` - The destination folder for downloads. Will be created if required, including sub-directories for each separate podcast.
 * `-t`, `--time_format` - Specify a time format string for JSON files. Defaults to '%Y-%m-%d' (2022-06-31) if not specified.
-* `-v`, `--verbose` - Prints additional debug information. If excluded, only errors are printed (for automation).
+* `-v`, `--verbose` - Prints additional debug information. If excluded, only errors are logged (no stdout for automation).
+* `-l`, `--log_file` - Specify the log file path. Defaults to `./podqueue.log`
 
 # Where do I get my OPML?
 
@@ -35,7 +37,7 @@ This will depend on your podcast app, but most will be able to export your list 
 
 If you use a different app that has a similar functionality, please let me know and I'll add it to this list.
 
-| |Podcast App|OPML Export Options|
+|Podcast App|Podcast App|OPML Export Options|
 |---|---|---|
 |<img src="https://www.pocketcasts.com/assets/images/roundel.svg" width=50 height=50>|Pocket Casts|[OPML export](https://support.pocketcasts.com/article/exporting-an-opml/)|
 |<img src="https://upload.wikimedia.org/wikipedia/en/thumb/d/d9/Overcast_%28podcast_app%29_logo.svg/1280px-Overcast_%28podcast_app%29_logo.svg.png" width=50 height=50>|Overcast|Option available in the app's Settings page, or [here on the web.](https://overcast.fm/account/export_opml)|
@@ -113,3 +115,11 @@ output/
 ├── The_Pen_Addict.json
 
 ```
+
+# Todos
+
+* Logging to disk
+* Distro packaging
+* Better config file location, eg $HOME/.config/podqueue.cfg
+* Built-in systemd/cron timers
+* Option to only download after X date (--no-backlog or --earliest ?)

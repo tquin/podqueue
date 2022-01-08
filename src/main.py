@@ -12,6 +12,7 @@ import requests
 import time
 from configparser import ConfigParser
 import re
+import logging
 
 # ----- ----- ----- ----- -----
 
@@ -24,6 +25,7 @@ class podqueue():
     self.opml = None
     self.dest = os.path.join(os.getcwd(), 'output')
     self.time_format = '%Y-%m-%d'
+    self.log_file = 'podqueue.log'
     self.feeds = []
     self.FEED_FIELDS = ['title', 'link', 'description', 'published', 'image', 'categories',]
     self.EPISODE_FIELDS = ['title', 'link', 'description', 'published_parsed', 'links',]
@@ -34,34 +36,36 @@ class podqueue():
     # Overwrite any config file defaults with CLI params
     self.cli_args()
 
+    self.config_logging()
+
     # Check an OPML was provided
     try:
       assert self.opml is not None
     except Exception as e:
-      self.verbose_print('OPML file or destination dir was not provided', flag='error')
+      logging.exception('OPML file or destination dir was not provided')
       exit()
 
 
-  def verbose_print(self, *args, flag=None):
+  def config_logging(self):
 
-    # Always print an error regardless
-    if self.verbose or (flag == 'error'):
-      mapping = {
-        'error': '❌',
-        'warn': '⚠️',
-        'default': '✅',
-      }
+    # Always log to file; only stdout if -v
+    handlers = [logging.FileHandler(self.log_file)]
+    if (self.verbose): handlers.append(logging.StreamHandler())
 
-      for message in args:
-        prefix = mapping.get(flag) if flag else mapping.get('default')
-        print(f'{prefix} {message}')
+    # Config settings
+    level = logging.INFO if (self.verbose) else logging.WARNING
+    logging.basicConfig(level=level, datefmt='%Y-%m-%d %H:%M:%S', handlers=handlers,
+                        format='%(asctime)s [%(levelname)s] %(message)s')
+
+    # Add header for append-mode file logging
+    logging.info('\n----- ----- ----- ----- -----\nInitialising\n----- ----- ----- ----- -----')
 
 
   def ascii_normalise(self, input_str):
     try:
       input_str = re.sub(r'[^a-zA-Z0-9\-\_\/\\\.]', '_', input_str)
     except Exception as e:
-      self.verbose_print(f'\t\tError normalising file name: {e}', flag='error')
+      logging.exception(f'\t\tError normalising file name: {e}')
       exit()
 
     return input_str
@@ -73,21 +77,19 @@ class podqueue():
 
     # Check if the file has been created
     if not os.path.exists(config_path):
-      self.verbose_print(f'Config file does not exist: {config_path}')
+      logging.info(f'Config file does not exist: {config_path}')
       return None
 
     conf = ConfigParser()
     conf.read(config_path)
 
-    for key in ['opml', 'dest', 'time_format', 'verbose']:
+    for key in ['opml', 'dest', 'time_format', 'verbose', 'log_file']:
       if conf['podqueue'].get(key, None):
         setattr(self, key, conf['podqueue'].get(key, None))
 
     # If we just changed verbose to str, make sure it's back to a bool
     if self.verbose:
       self.verbose = bool(self.verbose)
-
-    self.verbose_print(f'Using existing config file: {config_path}')
     
     return
 
@@ -103,6 +105,8 @@ class podqueue():
       help='Specify a time format string for JSON files. Defaults to 2022-06-31 if not specified.')
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
       help='Prints additional debug information. If excluded, only errors are printed (for automation).')
+    parser.add_argument('--log_file', dest='log_file',
+      help='Specify a path to the log file. Defaults to ./podqueue.log')
     
     # Save the CLI args to class vars - self.XXX
     # vars() converts into a native dict
@@ -111,8 +115,6 @@ class podqueue():
       # Don't overwrite if it's not provided in CLI
       if value is not None:
         setattr(self, key, value)
-
-    self.verbose_print(f'Parsing CLI args')
 
 
   def args_path(self, directory):
@@ -124,7 +126,7 @@ class podqueue():
 
 
   def parse_opml(self, opml):
-    self.verbose_print(f'Parsing OPML file: {opml}')
+    logging.info(f'Parsing OPML file: {opml}')
 
     # Check if we have an actual file handle (CLI arg), 
     # Or a string path (config file), and we need to get our own handle
@@ -139,7 +141,7 @@ class podqueue():
 
 
   def get_feeds(self, feeds):
-    self.verbose_print(f'Fetching feeds:')
+    logging.info(f'Fetching feeds:')
 
     for feed in feeds:
       content = feedparser.parse(feed)
@@ -147,10 +149,10 @@ class podqueue():
       # If feedparser library reports bad XML, warn and skip
       # Test str: 'http://feedparser.org/tests/illformed/rss/aaa_illformed.xml'
       if content.get('bozo', False):
-        self.verbose_print(f'Feed is misformatted: {feed}', flag='warn')
+        logging.warning(f'Feed is misformatted: {feed}')
         continue
 
-      self.verbose_print(f'\tProcessing feed: {content.feed.title}')
+      logging.info(f'\tProcessing feed: {content.feed.title}')
 
       # Normalise the podcast name with no spaces or non-simple ascii
       feed_dir_name = '_'.join([x for x in content.feed.title.split(' ')])
@@ -181,7 +183,7 @@ class podqueue():
 
 
   def process_feed_metadata(self, content, directory):
-    self.verbose_print(f'\t\tProcessing feed metadata')
+    logging.info(f'\t\tProcessing feed metadata')
 
     feed_metadata = {}
 
@@ -214,7 +216,7 @@ class podqueue():
     try:
       img.raise_for_status()
     except requests.exceptions.HTTPError as e:
-      self.verbose_print(f'\t\tImage could not be found: {image_url}', flag='warn')
+      logging.warning(f'\t\tImage could not be found: {image_url}')
       return
 
     image_filename_ext = os.path.splitext(image_url)[1]
@@ -225,7 +227,7 @@ class podqueue():
       for chunk in img.iter_content(chunk_size=128):
         img_f.write(chunk)
 
-    self.verbose_print(f'\t\tAdded image to disk: {os.path.split(image_filename)[1]}')
+    logging.info(f'\t\tAdded image to disk: {os.path.split(image_filename)[1]}')
     return
 
 
@@ -262,13 +264,13 @@ class podqueue():
 
     # Check if the file already exists on disk (if so, skip)
     if os.path.exists(episode_meta_filename) and os.path.exists(episode_audio_filename):
-      self.verbose_print(f'\t\tEpisode already saved, skipping: {episode_title}')
+      logging.info(f'\t\tEpisode already saved, skipping: {episode_title}')
       return
 
     # Write metadata to disk
     with open(episode_meta_filename, 'w') as ep_meta_f:
       ep_meta_f.write(json.dumps(episode_metadata))
-    self.verbose_print(f'\t\t\tAdded episode metadata to disk: {episode_title}')
+    logging.info(f'\t\t\tAdded episode metadata to disk: {episode_title}')
 
     # Download the audio file
     if episode_metadata['link']:
@@ -278,14 +280,14 @@ class podqueue():
     try:
       audio.raise_for_status()
     except requests.exceptions.HTTPError as e:
-      self.verbose_print(f'\t\t\tAudio could not be found: {episode_metadata["link"]}', flag='warn')
+      logging.warning(f'\t\t\tAudio could not be found: {episode_metadata["link"]}')
       return
 
     # Write audio to disk
     with open(episode_audio_filename, 'wb') as audio_f:
       for chunk in audio.iter_content(chunk_size=128):
         audio_f.write(chunk)
-    self.verbose_print(f'\t\t\tAdded episode audio to disk: {episode_title}')
+    logging.info(f'\t\t\tAdded episode audio to disk: {episode_title}')
 
     return
 

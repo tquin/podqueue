@@ -260,7 +260,7 @@ class podqueue():
       episode_metadata.pop('links', None)
 
     # Get a unique episode filename(s)
-    episode_title = f'{episode_metadata["published_parsed"]}_{episode_metadata["episode_title"]}'
+    episode_title = f'{episode_metadata["published_parsed"]}_{episode_metadata["title"]}'
     # Special case - the final file name (not path) can't have a slash in it
     episode_title = re.sub(r'(\/|\\)', r'_', episode_title)
     

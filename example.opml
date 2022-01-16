@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<opml version="1.0">
+  <head>
+    <title>Example feeds for podqueue</title>
+  </head>
+  <body>
+    <outline text="feeds">
+      <outline type="rss" text="Accidental Tech Podcast" xmlUrl="https://atp.fm/episodes?format=rss" />
+      <outline type="rss" text="The Pen Addict" xmlUrl="https://www.relay.fm/penaddict/feed" />
+    </outline>
+  </body>
+</opml>

@@ -4,7 +4,6 @@ import feedparser
 import argparse
 import os
 from os import path, getcwd
-import toml
 import xml.etree.ElementTree as ET
 from io import IOBase
 import json
@@ -79,8 +78,8 @@ class podqueue():
 
 
   def check_config(self):
-    # get the path to config.ini
-    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.ini')
+    # get the path to podqueue.conf
+    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'podqueue.conf')
 
     # Check if the file has been created
     if not os.path.exists(config_path):
@@ -112,7 +111,7 @@ class podqueue():
       help='Specify a time format string for JSON files. Defaults to 2022-06-31 if not specified.')
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
       help='Prints additional debug information. If excluded, only errors are printed (for automation).')
-    parser.add_argument('--log_file', dest='log_file',
+    parser.add_argument('-l', '--log_file', dest='log_file',
       help='Specify a path to the log file. Defaults to ./podqueue.log')
     
     # Save the CLI args to class vars - self.XXX

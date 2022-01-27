@@ -263,6 +263,14 @@ class podqueue():
     episode_title = f'{episode_metadata["published_parsed"]}_{episode_metadata["title"]}'
     # Special case - the final file name (not path) can't have a slash in it
     episode_title = re.sub(r'(\/|\\)', r'_', episode_title)
+
+    # Check the title isn't going to overshoot 255 bytes
+    # This is the limit in ZFS, BTRFS, ext*, NTFS, APFS, XFS, etc ...
+    # Otherwise, file.write will raise OSError 36 - "File name too long"
+    # I'm looking at you, Memory Palace 73. I mean really, 55 words and 316 characters long?
+    # https://thememorypalace.us/notes-on-an-imagined-plaque/
+    if len(episode_title) >= 250:
+      episode_title = f'{episode_title[0:245]}_'
     
     episode_meta_filename = os.path.join(os.path.join(directory, 'episodes'), \
                         f'{episode_title}.json')
@@ -279,7 +287,8 @@ class podqueue():
 
     # Write metadata to disk
     with open(episode_meta_filename, 'w') as ep_meta_f:
-      ep_meta_f.write(json.dumps(episode_metadata))
+        ep_meta_f.write(json.dumps(episode_metadata))
+
     logging.info(f'\t\t\tAdded episode metadata to disk: {episode_title}')
 
     # Download the audio file

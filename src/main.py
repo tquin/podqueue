@@ -251,8 +251,8 @@ class podqueue():
     # Change the links{} into a single audio URL
     if episode_metadata.get('links', None):
       for link in episode_metadata['links']:
-        if 'audio' in link['type']:
-          episode_metadata['link'] = link['href']
+        if 'audio' in link.get('type', None):
+          episode_metadata['link'] = link.get('href', None)
           break
 
       # Remove the old complicated links{}

@@ -216,14 +216,11 @@ class podqueue():
 
   def get_feed_image(self, image_url, directory):
 
-    img = requests.get(image_url)
-
-    # Check successful
     try:
+      img = requests.get(image_url)
       img.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-      logging.warning(f'\t\tImage could not be found: {image_url}')
-      return
+    except requests.exceptions as e:
+      logging.warning(f'\t\tImage could not be found: {image_url}, for reason: {e}')
 
     image_filename_ext = os.path.splitext(image_url)[1]
     image_filename = os.path.join(directory, f'{os.path.split(directory)[1]}{image_filename_ext}')
@@ -292,15 +289,13 @@ class podqueue():
     logging.info(f'\t\t\tAdded episode metadata to disk: {episode_title}')
 
     # Download the audio file
-    if episode_metadata['link']:
-      audio = requests.get(episode_metadata['link'])
-
-    # Check successful
-    try:
-      audio.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-      logging.warning(f'\t\t\tAudio could not be found: {episode_metadata["link"]}')
-      return
+    if episode_metadata.get('link', None):
+      try:
+        audio = requests.get(episode_metadata['link'])
+        audio.raise_for_status()
+      except requests.exceptions as e:
+        logging.warning(f'\t\t\tAudio could not be found: {episode_metadata["link"]}')
+        return
 
     # Write audio to disk
     with open(episode_audio_filename, 'wb') as audio_f:

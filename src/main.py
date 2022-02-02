@@ -41,7 +41,7 @@ class podqueue():
     try:
       assert self.opml is not None
     except Exception as e:
-      logging.exception('OPML file or destination dir was not provided')
+      logging.error('OPML file or destination dir was not provided')
       exit()
 
 
@@ -71,7 +71,7 @@ class podqueue():
       input_str = re.sub(r'(_|\.)$', r'', input_str)
       
     except Exception as e:
-      logging.exception(f'\t\tError normalising file name: {e}')
+      logging.error(f'\t\tError normalising file name: {e}')
       exit()
 
     return input_str
@@ -219,7 +219,7 @@ class podqueue():
     try:
       img = requests.get(image_url)
       img.raise_for_status()
-    except requests.exceptions as e:
+    except Exception as e:
       logging.warning(f'\t\tImage could not be found: {image_url}, for reason: {e}')
 
     image_filename_ext = os.path.splitext(image_url)[1]
@@ -293,7 +293,7 @@ class podqueue():
       try:
         audio = requests.get(episode_metadata['link'])
         audio.raise_for_status()
-      except requests.exceptions as e:
+      except Exception as e:
         logging.warning(f'\t\t\tAudio could not be found: {episode_metadata["link"]}')
         return
 

@@ -221,6 +221,7 @@ class podqueue():
       img.raise_for_status()
     except Exception as e:
       logging.warning(f'\t\tImage could not be found: {image_url}, for reason: {e}')
+      return
 
     image_filename_ext = os.path.splitext(image_url)[1]
     image_filename = os.path.join(directory, f'{os.path.split(directory)[1]}{image_filename_ext}')

@@ -150,7 +150,13 @@ class podqueue():
     logging.info(f'Fetching feeds:')
 
     for feed in feeds:
-      content = feedparser.parse(feed)
+      try:
+        content = feedparser.parse(feed)
+
+      # The remote RSS server can close the HTTP connection
+      except http.client.RemoteDisconnected:
+        logging.warning(f'Feed server unexpectedly closed connection: {feed}')
+        continue
 
       # If feedparser library reports bad XML, warn and skip
       # Test str: 'http://feedparser.org/tests/illformed/rss/aaa_illformed.xml'

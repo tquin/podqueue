@@ -12,6 +12,8 @@ import time
 from configparser import ConfigParser
 import re
 import logging
+# Used for error handling in feedparser lib
+from http.client import RemoteDisconnected
 
 # ----- ----- ----- ----- -----
 

@@ -12,8 +12,6 @@ import time
 from configparser import ConfigParser
 import re
 import logging
-# Used for error handling in feedparser lib
-import http.client.RemoteDisconnected
 
 # ----- ----- ----- ----- -----
 
@@ -156,7 +154,8 @@ class podqueue():
         content = feedparser.parse(feed)
 
       # The remote RSS server can close the HTTP connection
-      except http.client.RemoteDisconnected:
+      # except http.client.RemoteDisconnected:
+      except:
         logging.warning(f'Feed server unexpectedly closed connection: {feed}')
         continue
 

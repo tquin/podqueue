@@ -165,10 +165,12 @@ class podqueue():
         logging.warning(f'Feed is misformatted: {feed}')
         continue
 
-      logging.info(f'\tProcessing feed: {content.feed.title}')
+      title = content.feed.get('title', 'Unknown Title')
+
+      logging.info(f'\tProcessing feed: {title}')
 
       # Normalise the podcast name with no spaces or non-simple ascii
-      feed_dir_name = '_'.join([x for x in content.feed.title.split(' ')])
+      feed_dir_name = '_'.join([x for x in title.split(' ')])
       feed_dir_name = self.ascii_normalise(feed_dir_name)
 
       # Create the directory we need (no spaces) if it doesn't exist

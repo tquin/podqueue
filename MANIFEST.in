@@ -1,1 +1,1 @@
-include src/config.ini
+include src/podqueue.conf

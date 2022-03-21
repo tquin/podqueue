@@ -4,9 +4,9 @@ WORKDIR ./
 VOLUME /tmp/podqueue-output
 
 # Copy into docker image
-COPY src/main.py /main.py
-COPY src/config.ini /podqueue.conf
-COPY src/requirements.txt /requirements.txt
+COPY podqueue/main.py /main.py
+COPY podqueue/config.ini /podqueue.conf
+COPY podqueue/requirements.txt /requirements.txt
 COPY *.opml ./
 
 # Install requests, feedparser

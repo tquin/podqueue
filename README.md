@@ -89,7 +89,7 @@ Or you can just clone this repo directly:
 ```
 git clone https://github.com/tquin/podqueue
 cd podqueue/
-python3 src/main.py --help
+python3 podqueue/main.py --help
 ```
 
 Alternatively, you can use Docker to containerise `podqueue`. This will use a docker volume to write the output files onto your host file system, so just specify that as `<YOUR_OUTPUT_DIRECTORY>` in the below commands.

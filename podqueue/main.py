@@ -269,7 +269,7 @@ class podqueue():
     episode_title = f'{episode_metadata["published_parsed"]}_{episode_metadata["title"]}'
     # Special case - the final file name (not path) can't have a slash in it
     # Also replace colons as they are invalid in filenames on Windows (used for Alterante Data Streams on NTFS)
-    episode_title = re.sub(r'(\/|\\|:|\?)', r'_', episode_title)
+    episode_title = re.sub(r'(\/|\\|:|\?|")', r'_', episode_title)
 
     # Check the title isn't going to overshoot 255 bytes
     # This is the limit in ZFS, BTRFS, ext*, NTFS, APFS, XFS, etc ...

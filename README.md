@@ -98,7 +98,7 @@ Alternatively, you can use Docker to containerise `podqueue`. This will use a do
 git clone https://github.com/tquin/podqueue
 cd podqueue/
 nano example.opml # Replace this example with your subscription list
-nano src/podqueue.conf # Edit the config file with any changes you want
+nano podqueue/podqueue.conf # Edit the config file with any changes you want
 docker build --tag podqueue .
 docker run -it -v <YOUR_OUTPUT_DIRECTORY>:/tmp/podqueue-output podqueue
 ```

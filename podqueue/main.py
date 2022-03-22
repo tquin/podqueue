@@ -132,7 +132,7 @@ class podqueue():
 
 
   def parse_opml(self, opml):
-    logging.info(f'Parsing OPML file: {opml}')
+    logging.info(f'Parsing OPML file: {opml.name}')
 
     # Check if we have an actual file handle (CLI arg), 
     # Or a string path (config file), and we need to get our own handle
@@ -140,7 +140,7 @@ class podqueue():
       xml_root = ET.parse(opml_f).getroot()
 
     # Get all RSS feeds with a 'xmlUrl' attribute
-    for feed in [x.attrib for x in xml_root.findall("*/outline/*[@type='rss']")]:
+    for feed in [x.attrib for x in xml_root.findall(".//outline[@type='rss']")]:
       feed_url = feed.get('xmlUrl', None)
       if feed_url:
         self.feeds.append(feed_url)
@@ -199,7 +199,7 @@ class podqueue():
 
   def process_feed_metadata(self, content, directory):
     logging.info(f'\t\tProcessing feed metadata')
-
+    
     feed_metadata = {}
 
     for field in self.FEED_FIELDS:
@@ -216,7 +216,7 @@ class podqueue():
     feed_metadata['episode_count'] = len(content.entries)
 
     metadata_filename = os.path.join(directory, f'{os.path.split(directory)[1]}.json')
-    metadata_filename = self.ascii_normalise(metadata_filename)
+
     with open(metadata_filename, 'w') as meta_f:
       meta_f.write(json.dumps(feed_metadata))
 
@@ -234,7 +234,6 @@ class podqueue():
 
     image_filename_ext = os.path.splitext(image_url)[1]
     image_filename = os.path.join(directory, f'{os.path.split(directory)[1]}{image_filename_ext}')
-    image_filename = self.ascii_normalise(image_filename)
 
     with open(image_filename, 'wb') as img_f:
       for chunk in img.iter_content(chunk_size=128):
@@ -269,7 +268,8 @@ class podqueue():
     # Get a unique episode filename(s)
     episode_title = f'{episode_metadata["published_parsed"]}_{episode_metadata["title"]}'
     # Special case - the final file name (not path) can't have a slash in it
-    episode_title = re.sub(r'(\/|\\)', r'_', episode_title)
+    # Also replace colons as they are invalid in filenames on Windows (used for Alterante Data Streams on NTFS)
+    episode_title = re.sub(r'(\/|\\|:|\?|")', r'_', episode_title)
 
     # Check the title isn't going to overshoot 255 bytes
     # This is the limit in ZFS, BTRFS, ext*, NTFS, APFS, XFS, etc ...
@@ -284,8 +284,8 @@ class podqueue():
     episode_audio_filename = os.path.join(os.path.join(directory, 'episodes'), \
                         f'{episode_title}.mp3')
 
-    episode_meta_filename = self.ascii_normalise(episode_meta_filename)
-    episode_audio_filename = self.ascii_normalise(episode_audio_filename)
+    # episode_meta_filename = self.ascii_normalise(episode_meta_filename)
+    # episode_audio_filename = self.ascii_normalise(episode_audio_filename)
 
     # Check if the file already exists on disk (if so, skip)
     if os.path.exists(episode_meta_filename) and os.path.exists(episode_audio_filename):
@@ -309,7 +309,7 @@ class podqueue():
 
     # Write audio to disk
     with open(episode_audio_filename, 'wb') as audio_f:
-      for chunk in audio.iter_content(chunk_size=128):
+      for chunk in audio.iter_content(chunk_size=1024*8):
         audio_f.write(chunk)
     logging.info(f'\t\t\tAdded episode audio to disk: {episode_title}')
 

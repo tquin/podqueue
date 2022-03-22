@@ -5,7 +5,7 @@ with open('README.md') as readme_file:
 
 setup_args = dict(
     name = 'podqueue',
-    version = '0.1.0',
+    version = '0.1.1',
     description = 'Automate the archiving of podcast feeds, including show notes and images.',
     long_description_content_type = "text/markdown",
     long_description = README,

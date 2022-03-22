@@ -236,7 +236,7 @@ class podqueue():
     image_filename = os.path.join(directory, f'{os.path.split(directory)[1]}{image_filename_ext}')
 
     with open(image_filename, 'wb') as img_f:
-      for chunk in img.iter_content(chunk_size=128):
+      for chunk in img.iter_content(chunk_size=1024*8):
         img_f.write(chunk)
 
     logging.info(f'\t\tAdded image to disk: {os.path.split(image_filename)[1]}')

@@ -125,7 +125,7 @@ class podqueue():
 
   def args_path(self, directory):
     # Create the directory, if required
-    if  not os.path.isdir(directory):
+    if not os.path.isdir(directory):
       os.makedirs(directory)
 
     return directory
@@ -236,7 +236,7 @@ class podqueue():
     image_filename = os.path.join(directory, f'{os.path.split(directory)[1]}{image_filename_ext}')
 
     with open(image_filename, 'wb') as img_f:
-      for chunk in img.iter_content(chunk_size=128):
+      for chunk in img.iter_content(chunk_size=1024*8):
         img_f.write(chunk)
 
     logging.info(f'\t\tAdded image to disk: {os.path.split(image_filename)[1]}')
@@ -267,9 +267,11 @@ class podqueue():
 
     # Get a unique episode filename(s)
     episode_title = f'{episode_metadata["published_parsed"]}_{episode_metadata["title"]}'
+
     # Special case - the final file name (not path) can't have a slash in it
-    # Also replace colons as they are invalid in filenames on Windows (used for Alterante Data Streams on NTFS)
+    # Also replace colons as they are invalid in filenames on Windows (used for Alternate Data Streams on NTFS)
     episode_title = re.sub(r'(\/|\\|:|\?|")', r'_', episode_title)
+    episode_title = self.ascii_normalise(episode_title)
 
     # Check the title isn't going to overshoot 255 bytes
     # This is the limit in ZFS, BTRFS, ext*, NTFS, APFS, XFS, etc ...
@@ -283,9 +285,6 @@ class podqueue():
                         f'{episode_title}.json')
     episode_audio_filename = os.path.join(os.path.join(directory, 'episodes'), \
                         f'{episode_title}.mp3')
-
-    # episode_meta_filename = self.ascii_normalise(episode_meta_filename)
-    # episode_audio_filename = self.ascii_normalise(episode_audio_filename)
 
     # Check if the file already exists on disk (if so, skip)
     if os.path.exists(episode_meta_filename) and os.path.exists(episode_audio_filename):

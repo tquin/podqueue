@@ -107,7 +107,7 @@ docker run -it -v <YOUR_OUTPUT_DIRECTORY>:/tmp/podqueue-output podqueue
 
 Executing the script will download each podcast into their own subdirectory, with episode metadata (shownotes, date, title, link) and show metadata (episode count, description, image) in each subdirectory. Episodes will be downloaded in default feed order - usually newest first, but it could depend on the podcast.
 
-Example output:
+Example directory tree:
 ```
 output/
 ├─ Accidental_Tech_Podcast/
@@ -129,6 +129,16 @@ output/
 ├── The_Pen_Addict.png
 ├── The_Pen_Addict.json
 
+```
+
+And a sample JSON file for an episode (note that `description` will often be HTML-formatted):
+```
+{
+    "published_parsed": "2022-04-05",
+    "title": "Episode 451: Minitel (Entry 791.IS4209)",
+    "link": "https://pdst.fm/e/aphid.fireside.fm/d/1437767933/8658dd0c-baa7-4412-9466-918650a0013d/e373ca83-d5d9-4b8b-b03f-5fcd012ac9a2.mp3",
+    "description": "In which a French-only precursor to the World Wide Web appears in the late 1970s in a wave of Gallic futurist fervor, and John may have been making long distance calls from a Parisian prison. Certificate #23054."
+}
 ```
 
 # Todos

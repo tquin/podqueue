@@ -1,17 +1,21 @@
 #!/bin/env python3
 
-import feedparser
-import argparse
+# Builtins
+import time
+import re
 import os
 from os import path, getcwd
-import xml.etree.ElementTree as ET
-from io import IOBase
 import json
-import requests
-import time
-from configparser import ConfigParser
-import re
+import http # for Exception
+from io import IOBase
+import xml.etree.ElementTree as ET
 import logging
+
+# PIP
+import argparse
+from configparser import ConfigParser
+import requests
+import feedparser
 
 # ----- ----- ----- ----- -----
 
@@ -62,7 +66,7 @@ class podqueue():
 
   def ascii_normalise(self, input_str, ):
     try:
-      # Replace non-simple chars with dunders
+      # Replace non-simple chars with unders
       input_str = re.sub(r'[^a-zA-Z0-9\-\_\/\\\.]', '_', input_str)
       # Replace any strings of 2+ puncts with a single underscore
       input_str = re.sub(r'_+', r'_', input_str)
@@ -146,55 +150,61 @@ class podqueue():
         self.feeds.append(feed_url)
 
 
-  def get_feeds(self, feeds):
-    logging.info(f'Fetching feeds:')
+  def get_feed(self, feed):
+    logging.info(f'Fetching feed: {feed}')
 
-    for feed in feeds:
-      try:
-        content = feedparser.parse(feed)
+    try:
+      content = feedparser.parse(feed)
+    # The remote RSS server can close the HTTP connection
+    except http.client.RemoteDisconnected:
+      logging.warning(f'Feed server unexpectedly closed connection: {feed}')
+      return
 
-      # The remote RSS server can close the HTTP connection
-      # except http.client.RemoteDisconnected:
-      except:
-        logging.warning(f'Feed server unexpectedly closed connection: {feed}')
-        continue
+    # If feedparser library reports bad XML, warn and skip
+    # CharacterEncodingOverride is a false positive, ATP for example
+    # Test str: 'http://feedparser.org/tests/illformed/rss/aaa_illformed.xml'
+    if content.get('bozo', False) and not isinstance(
+      content.bozo_exception, 
+      feedparser.exceptions.CharacterEncodingOverride
+    ):
+      logging.warning(f'Feed is misformatted: {feed}, {content.bozo_exception}')
+      return
 
-      # If feedparser library reports bad XML, warn and skip
-      # Test str: 'http://feedparser.org/tests/illformed/rss/aaa_illformed.xml'
-      if content.get('bozo', False):
-        logging.warning(f'Feed is misformatted: {feed}')
-        continue
+    title = content.feed.get('title', 'Unknown Title')
+    logging.info(f'\tProcessing feed: {title}')
 
-      title = content.feed.get('title', 'Unknown Title')
+    directory = self.create_feed_directories(title)
 
-      logging.info(f'\tProcessing feed: {title}')
+    # Get content.feed metadata - podcast title, icon, description, etc.
+    # And write it to disk as <<PODCAST>>/<<PODCAST>>.json
+    feed_metadata = self.process_feed_metadata(content, directory)
 
-      # Normalise the podcast name with no spaces or non-simple ascii
-      feed_dir_name = '_'.join([x for x in title.split(' ')])
-      feed_dir_name = self.ascii_normalise(feed_dir_name)
+    # Also fetch the podcast logo, if available
+    if feed_metadata.get('image', None):
+      self.get_feed_image(feed_metadata['image'], directory)
 
-      # Create the directory we need (no spaces) if it doesn't exist
-      directory = os.path.join(self.dest, feed_dir_name)
-      if not os.path.isdir(directory):
-        os.makedirs(directory)
-
-      # Also create the <<PODCAST>>/episodes subdirectory
-      if not os.path.isdir(os.path.join(directory, 'episodes')):
-        os.makedirs(os.path.join(directory, 'episodes'))
-
-      # Get content.feed metadata - podcast title, icon, description, etc.
-      # And write it to disk as <<PODCAST>>/<<PODCAST>>.json
-      feed_metadata = self.process_feed_metadata(content, directory)
-
-      # Also fetch the podcast logo, if available
-      if feed_metadata.get('image', None):
-        self.get_feed_image(feed_metadata['image'], directory)
-
-      # Then, process the episodes each and write to disk
-      for episode in content.entries:
-        episode_data = self.process_feed_episode(episode, directory)
+    # Then, process the episodes each and write to disk
+    for episode in content.entries:
+      episode_data = self.process_feed_episode(episode, directory)
 
     return None
+
+
+  def create_feed_directories(self, title):
+    # Normalise the podcast name with no spaces or non-simple ascii
+    feed_dir_name = '_'.join([x for x in title.split(' ')])
+    feed_dir_name = self.ascii_normalise(feed_dir_name)
+
+    # Create the directory we need (no spaces) if it doesn't exist
+    directory = os.path.join(self.dest, feed_dir_name)
+    if not os.path.exists(directory) or not os.path.isdir(directory):
+      os.makedirs(directory)
+
+    # Also create the <<PODCAST>>/episodes subdirectory
+    if not os.path.isdir(os.path.join(directory, 'episodes')):
+      os.makedirs(os.path.join(directory, 'episodes'))
+    
+    return directory
 
 
   def process_feed_metadata(self, content, directory):
@@ -244,7 +254,6 @@ class podqueue():
 
 
   def process_feed_episode(self, episode, directory):
-
     episode_metadata = {}
     for field in self.EPISODE_FIELDS:
       episode_metadata[field] = episode.get(field, None)
@@ -252,24 +261,14 @@ class podqueue():
     # Change the time_struct tuple to a human string
     if episode_metadata.get('published_parsed', None):
       episode_metadata['published_parsed'] = time.strftime(self.time_format, \
-                                            episode_metadata['published_parsed'])
-
-    # Change the links{} into a single audio URL
-    if episode_metadata.get('links', None):
-      for link in episode_metadata['links']:
-        if link.get('type', None):
-          if 'audio' in link.get('type', None):
-            episode_metadata['link'] = link.get('href', None)
-            break
-
-      # Remove the old complicated links{}
-      episode_metadata.pop('links', None)
+                                          episode_metadata['published_parsed'])
 
     # Get a unique episode filename(s)
     episode_title = f'{episode_metadata["published_parsed"]}_{episode_metadata["title"]}'
 
     # Special case - the final file name (not path) can't have a slash in it
-    # Also replace colons as they are invalid in filenames on Windows (used for Alternate Data Streams on NTFS)
+    # Also replace colons as they are invalid in filenames on Windows ...
+    # ... (used for Alternate Data Streams on NTFS)
     episode_title = re.sub(r'(\/|\\|:|\?|")', r'_', episode_title)
     episode_title = self.ascii_normalise(episode_title)
 
@@ -291,27 +290,51 @@ class podqueue():
       logging.info(f'\t\tEpisode already saved, skipping: {episode_title}')
       return
 
+    episode_metadata = self.write_episode_metadata(episode_title, 
+      episode_metadata, episode_meta_filename
+    )
+    self.write_episode_audio(episode_title, 
+      episode_metadata, episode_audio_filename
+    )
+    return
+
+
+  def write_episode_metadata(self, episode_title, episode_metadata, episode_meta_filename):
+    # Change the links{} into a single audio URL
+    if episode_metadata.get('links', None):
+      for link in episode_metadata['links']:
+        if link.get('type', None):
+          if 'audio' in link.get('type', None):
+            episode_metadata['link'] = link.get('href', None)
+            break
+
+      # Remove the old complicated links{}
+      episode_metadata.pop('links', None)
+
     # Write metadata to disk
     with open(episode_meta_filename, 'w') as ep_meta_f:
         ep_meta_f.write(json.dumps(episode_metadata))
 
-    logging.info(f'\t\t\tAdded episode metadata to disk: {episode_title}')
+    logging.info(f'\t\tAdded episode metadata to disk: {episode_title}')
+    return episode_metadata
 
+
+  def write_episode_audio(self, episode_title, episode_metadata, episode_audio_filename):
     # Download the audio file
     if episode_metadata.get('link', None):
       try:
         audio = requests.get(episode_metadata['link'])
         audio.raise_for_status()
       except Exception as e:
-        logging.warning(f'\t\t\tAudio could not be found: {episode_metadata["link"]}')
+        logging.warning(f'\t\tAudio could not be found: {episode_metadata["link"]}')
         return
 
     # Write audio to disk
     with open(episode_audio_filename, 'wb') as audio_f:
       for chunk in audio.iter_content(chunk_size=1024*8):
         audio_f.write(chunk)
-    logging.info(f'\t\t\tAdded episode audio to disk: {episode_title}')
 
+    logging.info(f'\t\tAdded episode audio to disk: {episode_title}')
     return
 
 
@@ -325,7 +348,8 @@ def entry():
   pq.parse_opml(pq.opml)
 
   # Download the metadata, images, and any missing episodes
-  pq.get_feeds(pq.feeds)
+  for feed in pq.feeds:
+    pq.get_feed(feed)
 
 
 if __name__ == '__main__':

@@ -4,22 +4,29 @@
 import time
 import re
 import os
-from os import path, getcwd
 import json
 import http # for Exception
 from io import IOBase
 import xml.etree.ElementTree as ET
 import logging
 
+# Async
+import asyncio
+import aiohttp
+import async_timeout
+
 # PIP
 import argparse
 from configparser import ConfigParser
-import requests
 import feedparser
 
 # ----- ----- ----- ----- -----
 
 class podqueue():
+
+  # ----- ----- ----- ----- -----
+  # RUN-ONCE
+  # ----- ----- ----- ----- -----
 
 
   def __init__(self):
@@ -32,6 +39,7 @@ class podqueue():
     self.feeds = []
     self.FEED_FIELDS = ['title', 'link', 'description', 'published', 'image', 'categories',]
     self.EPISODE_FIELDS = ['title', 'link', 'description', 'published_parsed', 'links',]
+    self.http_session = None
 
     # If a config file exists, ingest it
     self.check_config()
@@ -150,15 +158,22 @@ class podqueue():
         self.feeds.append(feed_url)
 
 
-  def get_feed(self, feed):
-    logging.info(f'Fetching feed: {feed}')
+  # ----- ----- ----- ----- -----
+  # PER-FEED
+  # ----- ----- ----- ----- -----
 
+
+  async def get_feed(self, feed):
+    logging.info(f'Fetching feed: {feed}')
+    
     try:
-      content = feedparser.parse(feed)
+      html = await self.get_url(feed, 'text')
     # The remote RSS server can close the HTTP connection
-    except http.client.RemoteDisconnected:
-      logging.warning(f'Feed server unexpectedly closed connection: {feed}')
+    except Exception as error:
+      logging.warning(f'Error fetching RSS feed for: {feed}, {error=}')
       return
+
+    content = feedparser.parse(html)
 
     # If feedparser library reports bad XML, warn and skip
     # CharacterEncodingOverride is a false positive, ATP for example
@@ -177,17 +192,28 @@ class podqueue():
 
     # Get content.feed metadata - podcast title, icon, description, etc.
     # And write it to disk as <<PODCAST>>/<<PODCAST>>.json
-    feed_metadata = self.process_feed_metadata(content, directory)
+    feed_metadata = self.write_feed_metadata(content, directory)
 
     # Also fetch the podcast logo, if available
     if feed_metadata.get('image', None):
-      self.get_feed_image(feed_metadata['image'], directory)
+      await self.write_feed_image(feed_metadata['image'], directory)
 
     # Then, process the episodes each and write to disk
     for episode in content.entries:
-      episode_data = self.process_feed_episode(episode, directory)
+      episode_data = await self.process_feed_episode(episode, directory)
 
     return None
+
+  async def get_url(self, url, return_type):
+    assert return_type in ['text', 'bytes']
+
+    async with async_timeout.timeout(10):
+      async with self.http_session.get(url) as response:
+
+        if return_type == 'text':
+          return await response.text()
+        elif return_type == 'bytes':
+          return await response.read()
 
 
   def create_feed_directories(self, title):
@@ -207,7 +233,7 @@ class podqueue():
     return directory
 
 
-  def process_feed_metadata(self, content, directory):
+  def write_feed_metadata(self, content, directory):
     logging.info(f'\t\tProcessing feed metadata')
     
     feed_metadata = {}
@@ -233,11 +259,9 @@ class podqueue():
     return feed_metadata
 
 
-  def get_feed_image(self, image_url, directory):
-
+  async def write_feed_image(self, image_url, directory):
     try:
-      img = requests.get(image_url)
-      img.raise_for_status()
+      img_bytes = await self.get_url(image_url, return_type='bytes')
     except Exception as e:
       logging.warning(f'\t\tImage could not be found: {image_url}, for reason: {e}')
       return
@@ -246,14 +270,18 @@ class podqueue():
     image_filename = os.path.join(directory, f'{os.path.split(directory)[1]}{image_filename_ext}')
 
     with open(image_filename, 'wb') as img_f:
-      for chunk in img.iter_content(chunk_size=1024*8):
-        img_f.write(chunk)
+        img_f.write(img_bytes)
 
     logging.info(f'\t\tAdded image to disk: {os.path.split(image_filename)[1]}')
     return
 
 
-  def process_feed_episode(self, episode, directory):
+  # ----- ----- ----- ----- -----
+  # PER-EPISODE
+  # ----- ----- ----- ----- -----
+
+
+  async def process_feed_episode(self, episode, directory):
     episode_metadata = {}
     for field in self.EPISODE_FIELDS:
       episode_metadata[field] = episode.get(field, None)
@@ -293,7 +321,7 @@ class podqueue():
     episode_metadata = self.write_episode_metadata(episode_title, 
       episode_metadata, episode_meta_filename
     )
-    self.write_episode_audio(episode_title, 
+    await self.write_episode_audio(episode_title, 
       episode_metadata, episode_audio_filename
     )
     return
@@ -319,20 +347,21 @@ class podqueue():
     return episode_metadata
 
 
-  def write_episode_audio(self, episode_title, episode_metadata, episode_audio_filename):
-    # Download the audio file
-    if episode_metadata.get('link', None):
-      try:
-        audio = requests.get(episode_metadata['link'])
-        audio.raise_for_status()
-      except Exception as e:
-        logging.warning(f'\t\tAudio could not be found: {episode_metadata["link"]}')
-        return
+  async def write_episode_audio(self, episode_title, episode_metadata, episode_audio_filename):
+    if not episode_metadata.get('link', None):
+      return
+
+    audio_url = episode_metadata['link']
+
+    try:
+      audio_bytes = await self.get_url(audio_url, return_type='bytes')
+    except Exception as e:
+      logging.warning(f'\t\tAudio could not be found: {audio_url}, for reason: {e}')
+      return
 
     # Write audio to disk
     with open(episode_audio_filename, 'wb') as audio_f:
-      for chunk in audio.iter_content(chunk_size=1024*8):
-        audio_f.write(chunk)
+        audio_f.write(audio_bytes)
 
     logging.info(f'\t\tAdded episode audio to disk: {episode_title}')
     return
@@ -340,17 +369,24 @@ class podqueue():
 
 # ----- ----- ----- ----- -----
 
-def entry():
+async def entry():
   # Initialise the config - from file, or CLI args
   pq = podqueue()
   
   # Parse all feed URLs out of the OPML XML into pq.feeds=[]
   pq.parse_opml(pq.opml)
 
-  # Download the metadata, images, and any missing episodes
-  for feed in pq.feeds:
-    pq.get_feed(feed)
+  async with aiohttp.ClientSession() as http_session:
+    pq.http_session = http_session
+
+    # Download the metadata, images, and any missing episodes
+    tasks = [asyncio.create_task(
+              pq.get_feed(feed)
+              ) for feed in pq.feeds]
+
+    done, pending = await asyncio.wait(tasks)
+    logging.info('Async {done=}, {pending=}')
 
 
 if __name__ == '__main__':
-  entry()
+  asyncio.run(entry())

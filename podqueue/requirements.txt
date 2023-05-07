@@ -1,2 +1,5 @@
 feedparser>=6.0.8
-requests>=2.22.0
+configparser
+aiohttp
+aiofiles
+asyncio

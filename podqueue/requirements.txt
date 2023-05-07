@@ -3,3 +3,4 @@ configparser
 aiohttp
 aiofiles
 asyncio
+async_timeout

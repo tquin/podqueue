@@ -1,6 +1,5 @@
 feedparser>=6.0.8
 configparser
-aiohttp
 aiofiles
 asyncio
-async_timeout
+httpx

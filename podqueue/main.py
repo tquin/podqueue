@@ -5,16 +5,14 @@ import time
 import re
 import os
 import json
-import http # for Exception
 from io import IOBase
 import xml.etree.ElementTree as ET
 import logging
 
 # Async
 import asyncio
-import aiohttp
+import httpx
 import aiofiles
-import async_timeout
 
 # PIP
 import argparse
@@ -109,8 +107,6 @@ class podqueue():
     # If we just changed verbose to str, make sure it's back to a bool
     if self.verbose:
       self.verbose = bool(self.verbose)
-    
-    return
 
 
   def cli_args(self):
@@ -168,14 +164,15 @@ class podqueue():
     logging.info(f'Fetching feed: {feed}')
     
     try:
-      html = await self.get_url(
-        feed,
-        response_func=aiohttp.ClientResponse.text
+      html_response = await self.http_session.get(feed, 
+        follow_redirects=True
       )
+      html_response.raise_for_status()
+      html = html_response.text
     # The remote RSS server can close the HTTP connection
     except Exception as error:
       logging.warning(f'Error fetching RSS feed for: {feed}, {error=}')
-      return
+      return None
 
     content = feedparser.parse(html)
 
@@ -187,7 +184,7 @@ class podqueue():
       feedparser.exceptions.CharacterEncodingOverride
     ):
       logging.warning(f'Feed is misformatted: {feed}, {content.bozo_exception}')
-      return
+      return None
 
     title = content.feed.get('title', 'Unknown Title')
     logging.info(f'\tProcessing feed: {title}')
@@ -205,15 +202,6 @@ class podqueue():
     # Then, process the episodes each and write to disk
     for episode in content.entries:
       episode_data = await self.process_feed_episode(episode, directory)
-
-    return None
-
-  async def get_url(self, url, response_func):
-    async with async_timeout.timeout(10):
-      async with self.http_session.get(url, 
-                  raise_for_status=True,
-                  allow_redirects=True) as response:
-        return await response_func(response)
 
 
   def create_feed_directories(self, title):
@@ -260,24 +248,22 @@ class podqueue():
 
 
   async def write_feed_image(self, image_url, directory):
-    try:
-      img_bytes = await self.get_url(
-        image_url, 
-        response_func=aiohttp.ClientResponse.read
-      )
-    except Exception as e:
-      logging.warning(f'\t\tImage could not be found: {image_url}, for reason: {e}')
-      return
-
     image_filename_ext = os.path.splitext(image_url)[1]
     image_filename_ext = image_filename_ext if image_filename_ext else '.jpg'
     image_filename = os.path.join(directory, f'{os.path.split(directory)[1]}{image_filename_ext}')
 
-    async with aiofiles.open(image_filename, 'wb') as img_f:
-        await img_f.write(img_bytes)
+    async with self.http_session.stream('GET', 
+      image_url,
+      follow_redirects=True
+      ) as response:
+
+      response.raise_for_status()
+      
+      async with aiofiles.open(image_filename, 'wb') as img_f:
+        async for chunk in response.aiter_bytes(chunk_size=1024*8):
+          await img_f.write(chunk)
 
     logging.info(f'\t\tAdded image to disk: {os.path.split(image_filename)[1]}')
-    return
 
 
   # ----- ----- ----- ----- -----
@@ -320,7 +306,7 @@ class podqueue():
     # Check if the file already exists on disk (if so, skip)
     if os.path.exists(episode_meta_filename) and os.path.exists(episode_audio_filename):
       logging.info(f'\t\tEpisode already saved, skipping: {episode_title}')
-      return
+      return None
 
     episode_metadata = await self.write_episode_metadata(episode_title, 
       episode_metadata, episode_meta_filename
@@ -328,7 +314,6 @@ class podqueue():
     await self.write_episode_audio(episode_title, 
       episode_metadata, episode_audio_filename
     )
-    return
 
 
   async def write_episode_metadata(self, episode_title, episode_metadata, episode_meta_filename):
@@ -353,25 +338,22 @@ class podqueue():
 
   async def write_episode_audio(self, episode_title, episode_metadata, episode_audio_filename):
     if not episode_metadata.get('link', None):
-      return
+      return None
 
     audio_url = episode_metadata['link']
 
-    try:
-      audio_bytes = await self.get_url(
-        audio_url,
-        response_func=aiohttp.ClientResponse.read
-      )
-    except Exception as e:
-      logging.warning(f'\t\tAudio could not be found: {audio_url}, for reason: {e}')
-      return
+    async with self.http_session.stream('GET', 
+      audio_url,
+      follow_redirects=True
+      ) as response:
 
-    # Write audio to disk
-    async with aiofiles.open(episode_audio_filename, 'wb') as audio_f:
-        await audio_f.write(audio_bytes)
+      response.raise_for_status()
+      
+      async with aiofiles.open(episode_audio_filename, 'wb') as audio_f:
+        async for chunk in response.aiter_bytes(chunk_size=1024*8):
+          await audio_f.write(chunk)
 
     logging.info(f'\t\tAdded episode audio to disk: {episode_title}')
-    return
 
 
 # ----- ----- ----- ----- -----
@@ -383,15 +365,13 @@ async def entry():
   # Parse all feed URLs out of the OPML XML into pq.feeds=[]
   pq.parse_opml(pq.opml)
 
-  # Throttle requests to avoid lock-out
-  connector = aiohttp.TCPConnector(limit=10)
-  async with aiohttp.ClientSession(connector=connector) as http_session:
+  async with httpx.AsyncClient() as http_session:
     pq.http_session = http_session
 
     # Download the metadata, images, and any missing episodes
     tasks = [asyncio.create_task(
-              pq.get_feed(feed)
-              ) for feed in pq.feeds]
+              pq.get_feed(feed))
+            for feed in pq.feeds]
 
     done, pending = await asyncio.wait(tasks)
     logging.info('Async {done=}, {pending=}')

@@ -56,7 +56,7 @@ class podqueue():
       exit()
 
 
-  def config_logging(self):
+  def config_logging(self) -> None:
 
     # Always log to file; only stdout if -v
     handlers = [logging.FileHandler(self.log_file)]
@@ -71,7 +71,7 @@ class podqueue():
     logging.info('\n----- ----- ----- ----- -----\nInitialising\n----- ----- ----- ----- -----')
 
 
-  def ascii_normalise(self, input_str, ):
+  def ascii_normalise(self, input_str: str) -> str:
     try:
       # Replace non-simple chars with unders
       input_str = re.sub(r'[^a-zA-Z0-9\-\_\/\\\.]', '_', input_str)
@@ -88,7 +88,7 @@ class podqueue():
     return input_str
 
 
-  def check_config(self):
+  def check_config(self) -> None:
     # get the path to podqueue.conf
     config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'podqueue.conf')
 
@@ -109,7 +109,7 @@ class podqueue():
       self.verbose = bool(self.verbose)
 
 
-  def cli_args(self):
+  def cli_args(self) -> None:
     parser = argparse.ArgumentParser(add_help=True)
 
     parser.add_argument('-o', '--opml', dest='opml', default=None, type=argparse.FileType('r'),
@@ -132,7 +132,7 @@ class podqueue():
         setattr(self, key, value)
 
 
-  def args_path(self, directory):
+  def args_path(self, directory: str) -> str:
     # Create the directory, if required
     if not os.path.isdir(directory):
       os.makedirs(directory)
@@ -140,7 +140,7 @@ class podqueue():
     return directory
 
 
-  def parse_opml(self, opml):
+  def parse_opml(self, opml) -> None:
     logging.info(f'Parsing OPML file: {opml.name}')
 
     # Check if we have an actual file handle (CLI arg), 
@@ -160,7 +160,7 @@ class podqueue():
   # ----- ----- ----- ----- -----
 
 
-  async def get_feed(self, feed):
+  async def get_feed(self, feed: str) -> None:
     logging.info(f'Fetching feed: {feed}')
     
     try:
@@ -201,10 +201,10 @@ class podqueue():
 
     # Then, process the episodes each and write to disk
     for episode in content.entries:
-      episode_data = await self.process_feed_episode(episode, directory)
+      await self.process_feed_episode(episode, directory)
 
 
-  def create_feed_directories(self, title):
+  def create_feed_directories(self, title: str) -> str:
     # Normalise the podcast name with no spaces or non-simple ascii
     feed_dir_name = '_'.join([x for x in title.split(' ')])
     feed_dir_name = self.ascii_normalise(feed_dir_name)
@@ -221,7 +221,9 @@ class podqueue():
     return directory
 
 
-  async def write_feed_metadata(self, content, directory):
+  async def write_feed_metadata(self, 
+              content: feedparser.util.FeedParserDict, 
+              directory: str) -> dict:
     logging.info(f'\t\tProcessing feed metadata')
     
     feed_metadata = {}
@@ -247,7 +249,7 @@ class podqueue():
     return feed_metadata
 
 
-  async def write_feed_image(self, image_url, directory):
+  async def write_feed_image(self, image_url: str, directory: str) -> None:
     image_filename_ext = os.path.splitext(image_url)[1]
     image_filename_ext = image_filename_ext if image_filename_ext else '.jpg'
     image_filename = os.path.join(directory, f'{os.path.split(directory)[1]}{image_filename_ext}')
@@ -271,7 +273,9 @@ class podqueue():
   # ----- ----- ----- ----- -----
 
 
-  async def process_feed_episode(self, episode, directory):
+  async def process_feed_episode(self, 
+              episode: feedparser.util.FeedParserDict, 
+              directory: str) -> None:
     episode_metadata = {}
     for field in self.EPISODE_FIELDS:
       episode_metadata[field] = episode.get(field, None)
@@ -311,12 +315,17 @@ class podqueue():
     episode_metadata = await self.write_episode_metadata(episode_title, 
       episode_metadata, episode_meta_filename
     )
-    await self.write_episode_audio(episode_title, 
-      episode_metadata, episode_audio_filename
-    )
+
+    if episode_metadata.get('link', None):
+      await self.write_episode_audio(episode_title, 
+        episode_metadata.get('link'), episode_audio_filename
+      )
 
 
-  async def write_episode_metadata(self, episode_title, episode_metadata, episode_meta_filename):
+  async def write_episode_metadata(self, 
+              episode_title: str, 
+              episode_metadata: dict, 
+              episode_meta_filename: str) -> dict:
     # Change the links{} into a single audio URL
     if episode_metadata.get('links', None):
       for link in episode_metadata['links']:
@@ -336,11 +345,10 @@ class podqueue():
     return episode_metadata
 
 
-  async def write_episode_audio(self, episode_title, episode_metadata, episode_audio_filename):
-    if not episode_metadata.get('link', None):
-      return None
-
-    audio_url = episode_metadata['link']
+  async def write_episode_audio(self, 
+              episode_title: str, 
+              audio_url: dict, 
+              episode_audio_filename: str) -> None:
 
     async with self.http_session.stream('GET', 
       audio_url,

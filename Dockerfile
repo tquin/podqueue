@@ -1,16 +1,15 @@
 FROM python:3.10
 
 WORKDIR ./
-VOLUME /tmp/podqueue-output
+VOLUME /pq
 
 # Copy into docker image
 COPY podqueue/main.py /main.py
 COPY podqueue/podqueue.conf /podqueue.conf
 COPY podqueue/requirements.txt /requirements.txt
-COPY *.opml ./
 
 # Install requests, feedparser
 RUN pip install -r requirements.txt
 
 # Run podqueue
-CMD ["python", "main.py", "--log_file", "/tmp/podqueue-output/podqueue.log"]
+CMD ["python", "main.py", "--opml", "/pq/podqueue.opml", "--log_file", "/pq/podqueue.log"]

@@ -5,7 +5,7 @@ VOLUME /tmp/podqueue-output
 
 # Copy into docker image
 COPY podqueue/main.py /main.py
-COPY podqueue/config.ini /podqueue.conf
+COPY podqueue/podqueue.conf /podqueue.conf
 COPY podqueue/requirements.txt /requirements.txt
 COPY *.opml ./
 

@@ -16,8 +16,8 @@ The default `podqueue.conf` looks like the below. You have two choices to run th
 
 ```
 [podqueue]
-opml = example.opml
-dest = podqueue-output/
+opml = podqueue.opml
+dest = pq/
 log_file = podqueue.log
 # Please note, '%' in time_format must be escaped with '%%'
 time_format = %%Y-%%m-%%d
@@ -95,12 +95,9 @@ python3 podqueue/main.py --help
 Alternatively, you can use Docker to containerise `podqueue`. This will use a docker volume to write the output files onto your host file system, so just specify that as `<YOUR_OUTPUT_DIRECTORY>` in the below commands.
 
 ```
-git clone https://github.com/tquin/podqueue
-cd podqueue/
-nano example.opml # Replace this example with your subscription list
-nano podqueue/podqueue.conf # Edit the config file with any changes you want
-docker build --tag podqueue .
-docker run -it -v <YOUR_OUTPUT_DIRECTORY>:/tmp/podqueue-output podqueue
+docker pull tquin/podqueue:main
+nano <YOUR_OUTPUT_DIRECTORY>/podqueue.opml # Replace this example with your subscription list
+docker run -it -v <YOUR_OUTPUT_DIRECTORY>:/pq tquin/podqueue:main
 ```
 
 # Output

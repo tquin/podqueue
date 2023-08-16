@@ -1,4 +1,4 @@
-# podqueue
+# tquin/podqueue
 
 Automate the archiving of podcast feeds, including show notes and images.
 
@@ -6,6 +6,7 @@ This Python project aims for a simple user interface - you just need to modify `
 
 * https://pypi.org/project/podqueue
 * https://github.com/tquin/podqueue
+* https://hub.docker.com/r/tquin/podqueue
 
 # What does my config file look like?
 

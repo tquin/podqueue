@@ -86,12 +86,31 @@ python3 -m pip install --upgrade podqueue
 python3 -m podqueue --help
 ```
 
-Alternatively, you can use Docker to containerise `podqueue`. This uses a volume `/pq` you can map to wherever you'd like the output podcast files saved on the host. This location will also be where the OPML is read from, with the expected name `podqueue.opml`.
+Alternatively, you can use Docker to containerise `podqueue`. This requires two volumes mounts, one for the output location to save podcast files to on the host, and the other to store the `podqueue.opml` config and log files.
 
+Docker Compose:
 ```
-docker pull tquin/podqueue:main
-cat <YOUR_OUTPUT_DIRECTORY>/podqueue.opml # Replace this example with your subscription list
-docker run -it -v <YOUR_OUTPUT_DIRECTORY>:/pq tquin/podqueue:latest
+services:
+  podqueue:
+    name: podqueue
+    image: tquin/podqueue:latest
+    user: "<YOUR UID>:<YOUR GUID>"
+    restart: unless-stopped
+    volumes:
+      - "<YOUR_OUTPUT_DIRECTORY>:/data"
+      - "<YOUR_CONFIG_DIRECTORY>:/config"
+```
+
+Docker CLI:
+```
+docker pull tquin/podqueue:latest
+cat <YOUR_CONFIG_DIRECTORY>/podqueue.opml # Replace this example with your subscription list
+docker run -it \
+  -v <YOUR_OUTPUT_DIRECTORY>:/data \
+  -v <YOUR_CONFIG_DIRECTORY>:/config \
+  --restart unless-stopped \
+  --user "<YOUR UID>:<YOUR GUID>" \
+  tquin/podqueue:latest
 ```
 
 Or you can just clone this repo directly:

@@ -1,7 +1,8 @@
 FROM python:3.10
 
 WORKDIR ./
-VOLUME /pq
+VOLUME /data
+VOLUME /config
 
 # Copy into docker image
 COPY podqueue/main.py /main.py
@@ -12,4 +13,4 @@ COPY podqueue/requirements.txt /requirements.txt
 RUN pip install -r requirements.txt
 
 # Run podqueue
-CMD ["python", "main.py", "--opml", "/pq/podqueue.opml", "--log_file", "/pq/podqueue.log"]
+CMD ["python", "main.py", "--dest", "/data", "--opml", "/config/podqueue.opml", "--log_file", "/config/podqueue.log"]

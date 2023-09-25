@@ -93,7 +93,7 @@ Docker Compose:
 services:
   podqueue:
     name: podqueue
-    image: tquin/podqueue:latest
+    image: tquin/podqueue
     user: "<YOUR UID>:<YOUR GUID>"
     restart: unless-stopped
     volumes:
@@ -103,14 +103,14 @@ services:
 
 Docker CLI:
 ```
-docker pull tquin/podqueue:latest
+docker pull tquin/podqueue
 cat <YOUR_CONFIG_DIRECTORY>/podqueue.opml # Replace this example with your subscription list
 docker run -it \
   -v <YOUR_OUTPUT_DIRECTORY>:/data \
   -v <YOUR_CONFIG_DIRECTORY>:/config \
   --restart unless-stopped \
   --user "<YOUR UID>:<YOUR GUID>" \
-  tquin/podqueue:latest
+  tquin/podqueue
 ```
 
 Or you can just clone this repo directly:

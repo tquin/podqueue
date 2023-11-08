@@ -27,6 +27,12 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ vars.DOCKER_REPO }}
+        # This is needed so 'main' is recognised as a 'latest' branch instead of 'master'
+        tags: |
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=ref,event=tag
+          type=ref,event=pr
+          type=ref,event=branch
       
       - name: Build and push Docker image
         uses: docker/build-push-action@v4

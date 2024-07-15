@@ -13,4 +13,9 @@ COPY podqueue/requirements.txt /requirements.txt
 RUN pip install -r requirements.txt
 
 # Run podqueue
-CMD ["python", "main.py", "--dest", "/data", "--opml", "/config/podqueue.opml", "--log_file", "/config/podqueue.log"]
+CMD [
+    "python", "main.py", 
+    "--dest", "/data", 
+    "--opml", "/config/podqueue.opml", 
+    "--log_file", "/config/podqueue.log"
+]

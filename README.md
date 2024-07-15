@@ -23,6 +23,8 @@ log_file = podqueue.log
 # Please note, '%' in time_format must be escaped with '%%'
 time_format = %%Y-%%m-%%d
 verbose = False
+server = False
+server_sleep_hours = 1
 ```
 
 # CLI arguments
@@ -31,9 +33,11 @@ As mentioned, if any of these CLI arguments are specified, they will **overwrite
 
 * `-o`, `--opml` - Pass an OPML file that contains a podcast subscription list.
 * `-d`, `--dest` - The destination folder for downloads. Will be created if required, including sub-directories for each separate podcast.
-* `-t`, `--time_format` - Specify a time format string for JSON files. Defaults to '%Y-%m-%d' (2022-06-31) if not specified.
+* `-t`, `--time-format` - Specify a time format string for JSON files. Defaults to '%Y-%m-%d' (2022-06-31) if not specified.
 * `-v`, `--verbose` - Prints additional debug information. If excluded, only errors are logged (no stdout for automation).
-* `-l`, `--log_file` - Specify the log file path. Defaults to `./podqueue.log`
+* `-l`, `--log-file` - Specify the log file path. Defaults to `./podqueue.log`
+* `-d`, `--server` - Run in continuous background server mode.
+* `--server-sleep-hours` - How many hours to pause between runs when in server mode. Defaults to `1`.
 
 # Where do I get my OPML?
 

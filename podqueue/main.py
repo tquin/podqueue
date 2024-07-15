@@ -45,6 +45,7 @@ class podqueue():
 
     # Overwrite any config file defaults with CLI params
     self.cli_args()
+    self.validate_args()
 
     self.config_logging()
 
@@ -54,6 +55,19 @@ class podqueue():
     except Exception as e:
       logging.error('OPML file or destination dir was not provided')
       exit()
+
+
+  def validate_args(self) -> None:
+    # If we just changed verbose to str, make sure it's back to a bool
+    if self.verbose:
+      self.verbose = bool(self.verbose)
+
+    if self.server_sleep_hours:
+      try:
+        assert isinstance(self.server_sleep_hours, int) and self.server_sleep_hours >= 1
+      except AssertionError as e:
+        logging.error('Invalid value for argument `--server-sleep-hours`')
+        exit()
 
 
   def config_logging(self) -> None:
@@ -100,13 +114,9 @@ class podqueue():
     conf = ConfigParser()
     conf.read(config_path)
 
-    for key in ['opml', 'dest', 'time_format', 'verbose', 'log_file']:
+    for key in ['opml', 'dest', 'time_format', 'verbose', 'log_file', 'server', 'server_sleep_hours']:
       if conf['podqueue'].get(key, None):
         setattr(self, key, conf['podqueue'].get(key, None))
-
-    # If we just changed verbose to str, make sure it's back to a bool
-    if self.verbose:
-      self.verbose = bool(self.verbose)
 
 
   def cli_args(self) -> None:
@@ -116,12 +126,16 @@ class podqueue():
       help='Pass an OPML file that contains a podcast subscription list.')
     parser.add_argument('-d', '--dest', dest='dest', type=self.args_path,
       help='The destination folder for downloads. Will be created if required, including sub-directories for each separate podcast.')
-    parser.add_argument('-t', '--time_format', dest='time_format',
+    parser.add_argument('-t', '--time-format', dest='time_format',
       help='Specify a time format string for JSON files. Defaults to 2022-06-31 if not specified.')
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
       help='Prints additional debug information. If excluded, only errors are printed (for automation).')
-    parser.add_argument('-l', '--log_file', dest='log_file',
+    parser.add_argument('-l', '--log-file', dest='log_file',
       help='Specify a path to the log file. Defaults to ./podqueue.log')
+    parser.add_argument('-d', '--server', dest='server', default=False, action='store_true',
+      help='Specify whether to run once and exit, or run in continuous server mode.')
+    parser.add_argument('--server-sleep-hours', dest='server_sleep_hours', default=1, type=int,
+      help='Time (in hours) to pause in between runs.')
     
     # Save the CLI args to class vars - self.XXX
     # vars() converts into a native dict
@@ -369,7 +383,18 @@ class podqueue():
 async def entry():
   # Initialise the config - from file, or CLI args
   pq = podqueue()
-  
+
+  if not pq.server:
+    await main_loop(pq)
+    return
+
+  while True:
+    await main_loop(pq)
+    # Pause for background server
+    time.sleep(60 * 60 * pq.server_sleep_hours)
+
+
+async def main_loop(pq):
   # Parse all feed URLs out of the OPML XML into pq.feeds=[]
   pq.parse_opml(pq.opml)
 

@@ -30,7 +30,8 @@ class podqueue():
 
   def __init__(self):
     # Initialise to defaults before checking config file / CLI args
-    self.verbose = False
+    self.verbose = None
+    self.server = None
     self.opml = None
     self.dest = os.path.join(os.getcwd(), 'output')
     self.time_format = '%Y-%m-%d'
@@ -45,6 +46,7 @@ class podqueue():
 
     # Overwrite any config file defaults with CLI params
     self.cli_args()
+    self.validate_args()
 
     self.config_logging()
 
@@ -54,6 +56,20 @@ class podqueue():
     except Exception as e:
       logging.error('OPML file or destination dir was not provided')
       exit()
+
+
+  def validate_args(self) -> None:
+    # If we just passed a str, make sure it's back to a bool
+    for bool_arg in [self.verbose, self.server]:
+      if not isinstance(bool_arg, bool):
+        bool_arg = bool(bool_arg)
+
+    if self.server_sleep_hours:
+      try:
+        assert isinstance(self.server_sleep_hours, int) and self.server_sleep_hours >= 1
+      except AssertionError as e:
+        logging.error('Invalid value for argument `--server-sleep-hours`')
+        exit()
 
 
   def config_logging(self) -> None:
@@ -100,28 +116,28 @@ class podqueue():
     conf = ConfigParser()
     conf.read(config_path)
 
-    for key in ['opml', 'dest', 'time_format', 'verbose', 'log_file']:
+    for key in ['opml', 'dest', 'time_format', 'verbose', 'log_file', 'server', 'server_sleep_hours']:
       if conf['podqueue'].get(key, None):
         setattr(self, key, conf['podqueue'].get(key, None))
-
-    # If we just changed verbose to str, make sure it's back to a bool
-    if self.verbose:
-      self.verbose = bool(self.verbose)
 
 
   def cli_args(self) -> None:
     parser = argparse.ArgumentParser(add_help=True)
 
-    parser.add_argument('-o', '--opml', dest='opml', default=None, type=argparse.FileType('r'),
+    parser.add_argument('-o', '--opml', dest='opml', type=self.args_path_file, default=os.getenv('PQ_OPML', None),
       help='Pass an OPML file that contains a podcast subscription list.')
-    parser.add_argument('-d', '--dest', dest='dest', type=self.args_path,
+    parser.add_argument('-d', '--dest', dest='dest', type=self.args_path_dir, default=os.getenv('PQ_DEST', None),
       help='The destination folder for downloads. Will be created if required, including sub-directories for each separate podcast.')
-    parser.add_argument('-t', '--time_format', dest='time_format',
+    parser.add_argument('-t', '--time-format', dest='time_format', default=os.getenv('PQ_TIME_FORMAT', None),
       help='Specify a time format string for JSON files. Defaults to 2022-06-31 if not specified.')
-    parser.add_argument('-v', '--verbose', default=False, action='store_true',
+    parser.add_argument('-v', '--verbose', action='store_true', default=os.getenv('PQ_VERBOSE', None),
       help='Prints additional debug information. If excluded, only errors are printed (for automation).')
-    parser.add_argument('-l', '--log_file', dest='log_file',
+    parser.add_argument('-l', '--log-file', dest='log_file', type=self.args_path_file, default=os.getenv('PQ_LOG_FILE', None),
       help='Specify a path to the log file. Defaults to ./podqueue.log')
+    parser.add_argument('--bg', '--server', dest='server', action='store_true', default=os.getenv('PQ_SERVER', None),
+      help='Specify whether to run once and exit, or run in continuous server mode.')
+    parser.add_argument('--server-sleep-hours', dest='server_sleep_hours', type=int, default=os.getenv('PQ_SERVER_SLEEP_HOURS', 1),
+      help='Time (in hours) to pause in between runs.')
     
     # Save the CLI args to class vars - self.XXX
     # vars() converts into a native dict
@@ -132,16 +148,23 @@ class podqueue():
         setattr(self, key, value)
 
 
-  def args_path(self, directory: str) -> str:
+  def args_path_dir(self, directory: str) -> str:
     # Create the directory, if required
     if not os.path.isdir(directory):
       os.makedirs(directory)
 
     return directory
+  
+  def args_path_file(self, filename: str) -> str:
+    directory = os.path.dirname(os.path.abspath(filename))
+    # Create the directory, if required
+    self.args_path_dir(directory=directory)
+
+    return filename
 
 
   def parse_opml(self, opml) -> None:
-    logging.info(f'Parsing OPML file: {opml.name}')
+    logging.info(f'Parsing OPML file: {opml}')
 
     # Check if we have an actual file handle (CLI arg), 
     # Or a string path (config file), and we need to get our own handle
@@ -369,7 +392,20 @@ class podqueue():
 async def entry():
   # Initialise the config - from file, or CLI args
   pq = podqueue()
-  
+  logging.info(f'Server mode: {bool(pq.server)}')
+
+  if not pq.server:
+    await main_loop(pq)
+    return
+
+  while pq.server:
+    await main_loop(pq)
+    # Pause for background server
+    logging.info(f'Entering background sleep for {pq.server_sleep_hours} hours')
+    time.sleep(60 * 60 * pq.server_sleep_hours)
+
+
+async def main_loop(pq):
   # Parse all feed URLs out of the OPML XML into pq.feeds=[]
   pq.parse_opml(pq.opml)
 
@@ -382,7 +418,6 @@ async def entry():
             for feed in pq.feeds]
 
     done, pending = await asyncio.wait(tasks)
-    logging.info('Async {done=}, {pending=}')
 
 
 if __name__ == '__main__':

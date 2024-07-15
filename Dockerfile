@@ -1,4 +1,4 @@
-FROM python:3.10
+FROM python:3.12
 
 WORKDIR ./
 VOLUME /data
@@ -13,4 +13,9 @@ COPY podqueue/requirements.txt /requirements.txt
 RUN pip install -r requirements.txt
 
 # Run podqueue
-CMD ["python", "main.py", "--dest", "/data", "--opml", "/config/podqueue.opml", "--log_file", "/config/podqueue.log"]
+CMD [ \
+    "python", "main.py", \
+    "--dest", "/data", \
+    "--opml", "/config/podqueue.opml", \
+    "--log-file", "/config/podqueue.log"\
+]

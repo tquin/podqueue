@@ -8,32 +8,20 @@ This Python project aims for a simple user interface - you just need to modify `
 * https://github.com/tquin/podqueue
 * https://hub.docker.com/r/tquin/podqueue
 
-# What does my config file look like?
+# What does my config look like?
 
-The default `podqueue.conf` looks like the below. You have two choices to run this app:
+The order of precedence for these is CLI arguments taking the highest priority, environment variables second, and the `.conf` file last. If you are using the Docker image, environment variables are recommended.
 
-1) Edit this config file with your inputs and outputs, or
-2) Overwrite these values with the CLI flags below.
+| CLI argument | Environment variable | `.conf` file | Description |  Default value |
+| --- | --- | --- | --- | --- |
+| `-o`, `--opml` | PQ_OPML | opml | Pass an OPML file that contains a podcast subscription list. | podqueue.opml |
+| `-d`, `--dest` | PQ_DEST | dest | The destination folder for downloads. Will be created if required, including sub-directories for each separate podcast. | pq/ |
+| `-t`, `--time-format` | PQ_TIME_FORMAT | time_format | Specify a time format string for JSON files. _Please note, `%` must be escaped with `%%` for the `.conf` file option. | %Y-%m-%d |
+| `-v`, `--verbose` | PQ_VERBOSE | verbose | Prints additional debug information. If excluded, only errors are logged (no stdout for automation). | False |
+| `-l`, `--log-file` | PQ_LOG_FILE | log_file | Specify the log file path. | ./podqueue.log |
+| '--bg', '--server' | PQ_SERVER | server | Run in continuous background server mode. | False |
+| `--server-sleep-hours` | PQ_SERVER_SLEEP_HOURS | server_sleep_hours | How many hours to pause between runs when in server mode. | 1 |
 
-```
-[podqueue]
-opml = podqueue.opml
-dest = pq/
-log_file = podqueue.log
-# Please note, '%' in time_format must be escaped with '%%'
-time_format = %%Y-%%m-%%d
-verbose = False
-```
-
-# CLI arguments
-
-As mentioned, if any of these CLI arguments are specified, they will **overwrite** any values in the config file.
-
-* `-o`, `--opml` - Pass an OPML file that contains a podcast subscription list.
-* `-d`, `--dest` - The destination folder for downloads. Will be created if required, including sub-directories for each separate podcast.
-* `-t`, `--time_format` - Specify a time format string for JSON files. Defaults to '%Y-%m-%d' (2022-06-31) if not specified.
-* `-v`, `--verbose` - Prints additional debug information. If excluded, only errors are logged (no stdout for automation).
-* `-l`, `--log_file` - Specify the log file path. Defaults to `./podqueue.log`
 
 # Where do I get my OPML?
 

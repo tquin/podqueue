@@ -122,19 +122,19 @@ class podqueue():
   def cli_args(self) -> None:
     parser = argparse.ArgumentParser(add_help=True)
 
-    parser.add_argument('-o', '--opml', dest='opml', default=None, type=argparse.FileType('r'),
+    parser.add_argument('-o', '--opml', dest='opml', type=argparse.FileType('r'), default=os.getenv('PQ_OPML', None),
       help='Pass an OPML file that contains a podcast subscription list.')
-    parser.add_argument('-d', '--dest', dest='dest', type=self.args_path,
+    parser.add_argument('-d', '--dest', dest='dest', type=self.args_path, default=os.getenv('PQ_DEST', None),
       help='The destination folder for downloads. Will be created if required, including sub-directories for each separate podcast.')
-    parser.add_argument('-t', '--time-format', dest='time_format',
+    parser.add_argument('-t', '--time-format', dest='time_format', default=os.getenv('PQ_TIME_FORMAT', None),
       help='Specify a time format string for JSON files. Defaults to 2022-06-31 if not specified.')
-    parser.add_argument('-v', '--verbose', default=False, action='store_true',
+    parser.add_argument('-v', '--verbose', action='store_true', default=os.getenv('PQ_VERBOSE', None),
       help='Prints additional debug information. If excluded, only errors are printed (for automation).')
-    parser.add_argument('-l', '--log-file', dest='log_file',
+    parser.add_argument('-l', '--log-file', dest='log_file', type=argparse.FileType('r'), default=os.getenv('PQ_LOG_FILE', None),
       help='Specify a path to the log file. Defaults to ./podqueue.log')
-    parser.add_argument('-d', '--server', dest='server', default=False, action='store_true',
+    parser.add_argument('-d', '--server', dest='server', default=False, action='store_true', default=os.getenv('PQ_SERVER', None),
       help='Specify whether to run once and exit, or run in continuous server mode.')
-    parser.add_argument('--server-sleep-hours', dest='server_sleep_hours', default=1, type=int,
+    parser.add_argument('--server-sleep-hours', dest='server_sleep_hours', type=int, default=os.getenv('PQ_SERVER_SLEEP_HOURS', 1),
       help='Time (in hours) to pause in between runs.')
     
     # Save the CLI args to class vars - self.XXX

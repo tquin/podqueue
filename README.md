@@ -19,7 +19,7 @@ The order of precedence for these is CLI arguments taking the highest priority, 
 | `-t`, `--time-format` | PQ_TIME_FORMAT | time_format | Specify a time format string for JSON files. _Please note, `%` must be escaped with `%%` for the `.conf` file option. | %Y-%m-%d |
 | `-v`, `--verbose` | PQ_VERBOSE | verbose | Prints additional debug information. If excluded, only errors are logged (no stdout for automation). | False |
 | `-l`, `--log-file` | PQ_LOG_FILE | log_file | Specify the log file path. | ./podqueue.log |
-| `-d`, `--server` | PQ_SERVER | server | Run in continuous background server mode. | False |
+| '--bg', '--server' | PQ_SERVER | server | Run in continuous background server mode. | False |
 | `--server-sleep-hours` | PQ_SERVER_SLEEP_HOURS | server_sleep_hours | How many hours to pause between runs when in server mode. | 1 |
 
 
